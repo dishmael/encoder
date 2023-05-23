@@ -39,7 +39,7 @@ class Encoder():
             case _:
                 raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
 
-    def encodeLouder(self) -> str:
+    def encodeLouder(self, volume: float) -> str:
         outputFile = f'{self.output} Louder.mkv'
         input = ffmpeg.input(self.input)
         out = ffmpeg.output(
@@ -50,7 +50,7 @@ class Encoder():
             **{
                 "c:v": "copy",
                 "c:s": "copy",
-                "filter:a": "volume=2.0",
+                "filter:a": f'volume={volume}',
                 "metadata": f'title="{self.output}"',
             }
         )
