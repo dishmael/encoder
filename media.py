@@ -20,7 +20,7 @@ class Encoder():
     def __str__(self):
         return str(self.info.to_json())
     
-    def copy(self):
+    def copy(self) -> None:
         out = ffmpeg.input(self.input).output(
             f'{self.output} Final.mkv', 
             acodec='copy', 
@@ -30,7 +30,7 @@ class Encoder():
         print(out.get_args())
         out.run(overwrite_output=True)
     
-    def encode(self):
+    def encode(self) -> None:
         match self.cmax:
             case 2:
                 self.encodeStereo()
@@ -38,15 +38,36 @@ class Encoder():
                 self.encodeSurround()
             case _:
                 raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
-        pass
 
-    def encodeStereo(self):
+    def encodeLouder(self) -> str:
+        outputFile = f'{self.output} Louder.mkv'
         input = ffmpeg.input(self.input)
         out = ffmpeg.output(
             input['v'],
             input['a'],
             input['s?'],
-            f'{self.output} Final.mkv',
+            outputFile,
+            **{
+                "c:v": "copy",
+                "c:s": "copy",
+                "filter:a": "volume=2.0",
+                "metadata": f'title="{self.output}"',
+            }
+        )
+        
+        print(out.get_args())
+        out.run(overwrite_output=True)
+
+        return outputFile
+
+    def encodeStereo(self) -> str:
+        outputFile = f'{self.output} Final.mkv'
+        input = ffmpeg.input(self.input)
+        out = ffmpeg.output(
+            input['v'],
+            input['a'],
+            input['s?'],
+            outputFile,
             **{
                 "c:v": "copy",
                 "c:s": "copy",
@@ -60,16 +81,17 @@ class Encoder():
         print(out.get_args())
         out.run(overwrite_output=True)
 
-        pymkv.MKVFile(f'{self.output} Final.mkv').mux(f'{self.output}.mkv')
+        return outputFile
 
-    def encodeSurround(self):
+    def encodeSurround(self) -> str:
+        outputFile = f'{self.output} Final.mkv'
         input = ffmpeg.input(self.input)
         out = ffmpeg.output(
             input['v:0'], 
             input['a:0'], 
             input['a:0'],
             input['s?'],
-            f'{self.output} Final.mkv',
+            outputFile,
             **{
                 "c:v": "copy", 
                 "c:s": "copy",
@@ -81,9 +103,12 @@ class Encoder():
         print(out.get_args())
         out.run(overwrite_output=True)
 
-        pymkv.MKVFile(f'{self.output} Final.mkv').mux(f'{self.output}.mkv')
+        return outputFile
+    
+    def muxFile(self, input, output) -> None:
+        pymkv.MKVFile(input).mux(output)
 
-    def parseFilename(self):
+    def parseFilename(self) -> None:
         # Parse the filename and extract the descriptive parts.
         # The naming convention is important. It should be one of 
         # two formats, otherwise we raise an exception:
@@ -106,7 +131,7 @@ class Encoder():
             else:
                 self.output = f'{self.title} ({self.year})'
     
-    def parseMediaInfo(self):
+    def parseMediaInfo(self) -> None:
         self.info = MediaInfo.parse(self.input)
 
         # Determine max audio channel (2, 6, 8)
