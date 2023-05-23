@@ -147,9 +147,9 @@ class Encoder():
             case 2:
                 self.audio_bitrate = "192K"
             case 6:
-                self.audio_bitrate =  "448K"
+                self.audio_bitrate = "448K"
             case 8:
-                self.audio_bitrate =  "640K"
+                self.audio_bitrate = "640K"
             case _:
                 raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
             
