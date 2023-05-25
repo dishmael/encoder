@@ -39,27 +39,6 @@ class Encoder():
             case _:
                 raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
 
-    def encodeLouder(self, volume: float) -> str:
-        outputFile = f'{self.output} Louder.mkv'
-        input = ffmpeg.input(self.input)
-        out = ffmpeg.output(
-            input['v'],
-            input['a'],
-            input['s?'],
-            outputFile,
-            **{
-                "c:v": "copy",
-                "c:s": "copy",
-                "filter:a": f'volume={volume}',
-                "metadata": f'title="{self.output}"',
-            }
-        )
-        
-        print(out.get_args())
-        out.run(overwrite_output=True)
-
-        return outputFile
-
     def encodeStereo(self) -> str:
         outputFile = f'{self.output} Final.mkv'
         input = ffmpeg.input(self.input)
@@ -71,6 +50,7 @@ class Encoder():
             **{
                 "c:v": "copy",
                 "c:s": "copy",
+                "filter:a": "volume=2.0",
                 "c:a:0": "libfdk_aac",
                 "b:a:0": self.audio_bitrate,
                 "metadata:s:a:0": "title=Stereo",
@@ -95,6 +75,8 @@ class Encoder():
             **{
                 "c:v": "copy", 
                 "c:s": "copy",
+                "filter:a:0": "volume=2.0",
+                "filter:a:1": "volume=2.0",
                 "c:a:0": "libfdk_aac", "b:a:0": self.audio_bitrate, "metadata:s:a:0": "title=Surround",
                 "c:a:1": "libfdk_aac", "b:a:1": "192K", "ac:a:1": "2", "metadata:s:a:1": "title=Stereo",
             }
