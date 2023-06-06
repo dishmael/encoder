@@ -22,7 +22,7 @@ class Encoder():
     
     def copy(self) -> None:
         out = ffmpeg.input(self.input).output(
-            f'{self.output} Final.mkv', 
+            f'{self.output} Copy.mkv', 
             acodec='copy', 
             vcodec='copy',
         )
@@ -39,8 +39,8 @@ class Encoder():
             case _:
                 raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
 
-    def encodeStereo(self) -> str:
-        outputFile = f'{self.output} Final.mkv'
+    def encodeStereo(self) -> None:
+        outputFile = f'{self.output} Stereo.mkv'
         input = ffmpeg.input(self.input)
         out = ffmpeg.output(
             input['v'],
@@ -60,11 +60,10 @@ class Encoder():
         
         print(out.get_args())
         out.run(overwrite_output=True)
+        self.muxFile(outputFile)
 
-        return outputFile
-
-    def encodeSurround(self) -> str:
-        outputFile = f'{self.output} Final.mkv'
+    def encodeSurround(self) -> None:
+        outputFile = f'{self.output} Surround.mkv'
         input = ffmpeg.input(self.input)
         out = ffmpeg.output(
             input['v:0'], 
@@ -84,10 +83,10 @@ class Encoder():
 
         print(out.get_args())
         out.run(overwrite_output=True)
-
-        return outputFile
+        self.muxFile(outputFile)
     
-    def muxFile(self, input, output) -> None:
+    def muxFile(self, input) -> None:
+        output = f'{self.output}.mkv'
         pymkv.MKVFile(input).mux(output)
 
     def parseFilename(self) -> None:
