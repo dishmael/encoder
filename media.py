@@ -1,9 +1,12 @@
 import ffmpeg   # https://github.com/kkroening/ffmpeg-python
+import logging
 import pymkv    # https://github.com/sheldonkwoodward/pymkv
 import re
 
 from mediaexceptions import InvalidChannelCount, InvalidFilenameFormat
 from pymediainfo import MediaInfo # https://pymediainfo.readthedocs.io/en/stable/
+
+logging.basicConfig(level=logging.DEBUG)
 
 class Encoder():
     def __init__(self, mediaFile: str):
@@ -58,7 +61,7 @@ class Encoder():
             }
         )
         
-        print(out.get_args())
+        logging.debug(out.get_args())
         out.run(overwrite_output=True)
         self.muxFile(outputFile)
 
@@ -81,13 +84,14 @@ class Encoder():
             }
         )
 
-        print(out.get_args())
+        logging.debug(out.get_args())
         out.run(overwrite_output=True)
         self.muxFile(outputFile)
     
     def muxFile(self, input) -> None:
         output = f'{self.output}.mkv'
         pymkv.MKVFile(input).mux(output)
+        logging.debug("Muxing complete")
 
     def parseFilename(self) -> None:
         # Parse the filename and extract the descriptive parts.
