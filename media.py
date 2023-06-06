@@ -6,13 +6,17 @@ import re
 from mediaexceptions import InvalidChannelCount, InvalidFilenameFormat
 from pymediainfo import MediaInfo # https://pymediainfo.readthedocs.io/en/stable/
 
-logging.basicConfig(level=logging.DEBUG)
-
 class Encoder():
     def __init__(self, mediaFile: str):
         self.input = mediaFile
         self.cmax  = 0
         self.cidx  = -1
+
+        logging.basicConfig(
+            format='%(asctime)s - %(message)s', 
+            datefmt='%d-%b-%y %H:%M:%S', 
+            level=logging.DEBUG,
+        )
 
         # Parse the media for info
         self.parseMediaInfo()
@@ -24,14 +28,16 @@ class Encoder():
         return str(self.info.to_json())
     
     def copy(self) -> None:
+        logging.debug(f'Starting copy of "{self.input}" to "{self.output} Copy.mkv"')
         out = ffmpeg.input(self.input).output(
             f'{self.output} Copy.mkv', 
             acodec='copy', 
             vcodec='copy',
         )
 
-        print(out.get_args())
+        logging.debug(out.get_args())
         out.run(overwrite_output=True)
+        logging.debug("Copy completed")
     
     def encode(self) -> None:
         match self.cmax:
@@ -43,6 +49,8 @@ class Encoder():
                 raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
 
     def encodeStereo(self) -> None:
+        logging.debug("Encoding stereo sound")
+        
         outputFile = f'{self.output} Stereo.mkv'
         input = ffmpeg.input(self.input)
         out = ffmpeg.output(
@@ -66,6 +74,8 @@ class Encoder():
         self.muxFile(outputFile)
 
     def encodeSurround(self) -> None:
+        logging.debug("Encoding surround sound")
+        
         outputFile = f'{self.output} Surround.mkv'
         input = ffmpeg.input(self.input)
         out = ffmpeg.output(
@@ -89,11 +99,16 @@ class Encoder():
         self.muxFile(outputFile)
     
     def muxFile(self, input) -> None:
+        logging.debug(f'Starting mux of "{input}"')
+        
         output = f'{self.output}.mkv'
         pymkv.MKVFile(input).mux(output)
-        logging.debug("Muxing complete")
+        
+        logging.debug(f'Muxing complete for "{output}"')
 
     def parseFilename(self) -> None:
+        logging.debug(f'Parsing filename: {self.input}')
+
         # Parse the filename and extract the descriptive parts.
         # The naming convention is important. It should be one of 
         # two formats, otherwise we raise an exception:
@@ -105,6 +120,8 @@ class Encoder():
             raise InvalidFilenameFormat("Filename format is invalid")
         
         else:
+            logging.debug(f'Extracting fields from filename')
+            
             self.title     = match.group(1)
             self.season    = match.group(2)
             self.episode   = match.group(3)
@@ -115,8 +132,11 @@ class Encoder():
                 self.output = f'{self.title} - {self.season} - {self.episode} ({self.year})'
             else:
                 self.output = f'{self.title} ({self.year})'
+            
+            logging.debug(f'Setting output field to "{self.output}"')
     
     def parseMediaInfo(self) -> None:
+        logging.debug(f'Parsing media info for "{self.input}"')
         self.info = MediaInfo.parse(self.input)
 
         # Determine max audio channel (2, 6, 8)
@@ -127,6 +147,8 @@ class Encoder():
                         self.cmax = track.channel_s
                         self.cidx += 1
         
+        logging.debug(f'Channel Max: {self.cmax}')
+
         # Determine audio bitrate, raise an exception if its not 2, 6, or 8
         match self.cmax:
             case 2:
@@ -137,4 +159,6 @@ class Encoder():
                 self.audio_bitrate = "640K"
             case _:
                 raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
+        
+        logging.debug(f'Setting audio bitrate to {self.audio_bitrate}')
             
