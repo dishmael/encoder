@@ -85,18 +85,17 @@ class Encoder():
             input['s?'],
             outputFile,
             **{
+                "filter:a": "volume=2.0",
                 "c:v": "copy", 
                 "c:s": "copy",
-                "filter:a:0": "volume=2.0",
-                "filter:a:1": "volume=2.0",
                 "c:a:0": "libfdk_aac", "b:a:0": self.audio_bitrate, "metadata:s:a:0": "title=Surround",
                 "c:a:1": "libfdk_aac", "b:a:1": "192K", "ac:a:1": "2", "metadata:s:a:1": "title=Stereo",
             }
         )
 
         logging.debug(out.get_args())
-        out.run(overwrite_output=True)
-        self.muxFile(outputFile)
+        #out.run(overwrite_output=True)
+        #self.muxFile(outputFile)
     
     def muxFile(self, input) -> None:
         logging.debug(f'Starting mux of "{input}"')
