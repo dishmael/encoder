@@ -94,8 +94,8 @@ class Encoder():
         )
 
         logging.debug(out.get_args())
-        #out.run(overwrite_output=True)
-        #self.muxFile(outputFile)
+        out.run(overwrite_output=True)
+        self.muxFile(outputFile)
     
     def muxFile(self, input) -> None:
         logging.debug(f'Starting mux of "{input}"')
