@@ -6,6 +6,12 @@ import re
 from mediaexceptions import InvalidChannelCount, InvalidFilenameFormat
 from pymediainfo import MediaInfo # https://pymediainfo.readthedocs.io/en/stable/
 
+BITRATES = {
+    2: "192K",
+    6: "448K",
+    8: "640K",
+}
+
 class Encoder():
     def __init__(self, mediaFile: str):
         self.input = mediaFile
@@ -28,7 +34,7 @@ class Encoder():
         return str(self.info.to_json())
     
     def copy(self) -> None:
-        logging.debug(f'Starting copy of "{self.input}" to "{self.output} Copy.mkv"')
+        logging.info(f'Starting copy of "{self.input}" to "{self.output} Copy.mkv"')
         out = ffmpeg.input(self.input).output(
             f'{self.output} Copy.mkv', 
             acodec='copy', 
@@ -37,7 +43,7 @@ class Encoder():
 
         logging.debug(out.get_args())
         out.run(overwrite_output=True)
-        logging.debug("Copy completed")
+        logging.info("Copy completed")
     
     def encode(self) -> None:
         match self.cmax:
@@ -49,7 +55,7 @@ class Encoder():
                 raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
 
     def encodeStereo(self) -> None:
-        logging.debug("Encoding stereo sound")
+        logging.info("Encoding stereo sound")
         
         outputFile = f'{self.output} Stereo.mkv'
         input = ffmpeg.input(self.input)
@@ -71,6 +77,8 @@ class Encoder():
         
         logging.debug(out.get_args())
         out.run(overwrite_output=True)
+        logging.info('Stereo encode complete')
+        
         self.muxFile(outputFile)
 
     def encodeSurround(self) -> None:
@@ -95,31 +103,30 @@ class Encoder():
 
         logging.debug(out.get_args())
         out.run(overwrite_output=True)
+        logging.info('Surround sound encoding complete')
+
         self.muxFile(outputFile)
     
     def muxFile(self, input) -> None:
-        logging.debug(f'Starting mux of "{input}"')
+        logging.info(f'Starting mux of "{input}"')
         
         output = f'{self.output}.mkv'
         pymkv.MKVFile(input).mux(output)
         
-        logging.debug(f'Muxing complete for "{output}"')
+        logging.info(f'Muxing complete for "{output}"')
 
     def parseFilename(self) -> None:
-        logging.debug(f'Parsing filename: {self.input}')
-
-        # Parse the filename and extract the descriptive parts.
-        # The naming convention is important. It should be one of 
-        # two formats, otherwise we raise an exception:
-        #   Title (Year) Orig.Extension
-        #   Title - S01E01 - Episode (Year) Orig.Extension
-        match = re.match('([a-zA-Z0-9\s]+)\s-?\s?(\w+?)?\s?-?\s?(\w+?)?\s?\((\w+)\) Orig\.([mpkv4]+)', self.input)
+        logging.info(f'Parsing filename: {self.input}')
+        
+        # Determine the pattern for regex groupings
+        pattern = self.getPattern(self.input)
+        match = re.match(pattern, self.input)
         
         if not match:
             raise InvalidFilenameFormat("Filename format is invalid")
         
         else:
-            logging.debug(f'Extracting fields from filename')
+            logging.info(f'Extracting fields from filename')
             
             self.title     = match.group(1)
             self.season    = match.group(2)
@@ -132,10 +139,10 @@ class Encoder():
             else:
                 self.output = f'{self.title} ({self.year})'
             
-            logging.debug(f'Setting output field to "{self.output}"')
+            logging.info(f'Setting output field to "{self.output}"')
     
     def parseMediaInfo(self) -> None:
-        logging.debug(f'Parsing media info for "{self.input}"')
+        logging.info(f'Parsing media info for "{self.input}"')
         self.info = MediaInfo.parse(self.input)
 
         # Determine max audio channel (2, 6, 8)
@@ -146,18 +153,39 @@ class Encoder():
                         self.cmax = track.channel_s
                         self.cidx += 1
         
-        logging.debug(f'Channel Max: {self.cmax}')
+        logging.info(f'Channel Max: {self.cmax}')
 
         # Determine audio bitrate, raise an exception if its not 2, 6, or 8
-        match self.cmax:
-            case 2:
-                self.audio_bitrate = "192K"
-            case 6:
-                self.audio_bitrate = "448K"
-            case 8:
-                self.audio_bitrate = "640K"
-            case _:
-                raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
+        try:
+            self.audo_bitrate = BITRATES[self.cmax]
+        except:
+            raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
         
-        logging.debug(f'Setting audio bitrate to {self.audio_bitrate}')
-            
+        logging.info(f'Setting audio bitrate to {self.audio_bitrate}')
+    
+    # The filename format hints to the type of file we're working with:
+    #   Movie: 'Title (Year) Orig'
+    #   TV Show: 'Title - Marker - Episode (Year)'
+    def getPattern(self, fileName:str) -> str:
+        # The filename format hints to the type of file we're working with:
+        #   Movie: 'Title (Year) Orig'
+        #   TV Show: 'Title - Marker - Episode (Year)'
+        if (len(fileName.split(' - '))) >= 3:
+            logging.info(f'{fileName} appears to be a TV show')
+            return re.compile(r'''
+                ([a-zA-Z0-9\s]+)    # Title
+                \s-\s               # Separator
+                (\w+)               # Season/Episode Marker
+                \s-\s               # Separator
+                ([a-zA-Z0-9\s]+)    # Episode
+                \s\(([0-9]+)\)      # Year
+                \sOrig\.([mpkv4]+)  # Extension
+            ''', re.VERBOSE)
+
+        else:
+            logging.info(f'{fileName} appears to be a movie')
+            return re.compile(r'''
+                ([a-zA-Z0-9\s]+)    # Title
+                \s\(([0-9]+)\)      # Year
+                \sOrig\.([mpkv4]+)  # Extension
+            ''', re.VERBOSE)
