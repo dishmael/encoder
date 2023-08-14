@@ -157,12 +157,12 @@ class Encoder():
 
         # Determine audio bitrate, raise an exception if its not 2, 6, or 8
         try:
-            self.audo_bitrate = BITRATES[self.cmax]
+            self.audio_bitrate = BITRATES[self.cmax]
+            logging.info(f'Setting audio bitrate to {self.audio_bitrate}')
+
         except:
             raise InvalidChannelCount(f'Unexpected channel count: {self.cmax}')
-        
-        logging.info(f'Setting audio bitrate to {self.audio_bitrate}')
-    
+
     # The filename format hints to the type of file we're working with:
     #   Movie: 'Title (Year) Orig'
     #   TV Show: 'Title - Marker - Episode (Year)'
