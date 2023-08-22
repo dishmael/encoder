@@ -119,6 +119,7 @@ class Encoder():
         logging.info(f'Parsing filename: {self.input}')
         
         # Determine the pattern for regex groupings
+        logging.info(f'Extracting fields from filename')
         pattern = self.getPattern(self.input)
         match = re.match(pattern, self.input)
         
@@ -126,17 +127,23 @@ class Encoder():
             raise InvalidFilenameFormat("Filename format is invalid")
         
         else:
-            logging.info(f'Extracting fields from filename')
+            logging.debug(f'Found {len(match.groups())} fields')
             
-            self.title     = match.group(1)
-            self.season    = match.group(2)
-            self.episode   = match.group(3)
-            self.year      = match.group(4)
-            self.extension = match.group(5)
-            
-            if self.season != None:
+            if len(match.groups()) > 3:
+                # TV Show
+                self.title     = match.group(1)
+                self.season    = match.group(2)
+                self.episode   = match.group(3)
+                self.year      = match.group(4)
+                self.extension = match.group(5)
+
                 self.output = f'{self.title} - {self.season} - {self.episode} ({self.year})'
             else:
+                # Movie
+                self.title     = match.group(1)
+                self.year      = match.group(2)
+                self.extension = match.group(3)
+
                 self.output = f'{self.title} ({self.year})'
             
             logging.info(f'Setting output field to "{self.output}"')
