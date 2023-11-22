@@ -193,7 +193,7 @@ class Encoder():
         else:
             logging.info(f'{fileName} appears to be a movie')
             return re.compile(r'''
-                ([a-zA-Z0-9\s]+)    # Title
+                ([a-zA-Z0-9\s\-]+)    # Title
                 \s\(([0-9]+)\)      # Year
                 \sOrig\.([mpkv4]+)  # Extension
             ''', re.VERBOSE)
