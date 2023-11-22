@@ -19,7 +19,7 @@ class Encoder():
         self.cidx  = -1
 
         logging.basicConfig(
-            format='%(asctime)s - %(message)s', 
+            format='%(asctime)s : %(levelname)-8s  %(message)s', 
             datefmt='%d-%b-%y %H:%M:%S', 
             level=logging.DEBUG,
         )
@@ -128,8 +128,6 @@ class Encoder():
             raise InvalidFilenameFormat("Filename format is invalid")
         
         else:
-            logging.debug(f'Found {len(match.groups())} fields')
-            
             if len(match.groups()) > 3:
                 # TV Show
                 self.title     = match.group(1)
